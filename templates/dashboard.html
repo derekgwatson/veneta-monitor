@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Veneta Order Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>Veneta Order Dashboard</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Order Number</th>
+                <th>Received at Veneta FTP</th>
+                <th>Received at Local FTP</th>
+                <th>Processed in Buz</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.order_number }}</td>
+                <td>{{ order.veneta_ftp_time or 'Pending' }}</td>
+                <td>{{ order.local_ftp_time or 'Pending' }}</td>
+                <td>{{ order.buz_processed_time or 'Pending' }}</td>
+                <td>
+                    {% if order.buz_processed_time %}
+                        ✅ Processed
+                    {% elif order.local_ftp_time %}
+                        🚛 At Local FTP
+                    {% elif order.veneta_ftp_time %}
+                        📥 Received from Veneta
+                    {% else %}
+                        ⏳ Waiting
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
