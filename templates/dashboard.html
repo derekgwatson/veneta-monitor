@@ -8,6 +8,10 @@
 </head>
 <body>
 <h1>Veneta Order Dashboard</h1>
+<label>
+  <input type="checkbox" id="toggleHideable" checked>
+  Show Invoiced and Cancelled Orders
+</label>
 <table border="1">
     <thead>
         <tr>
@@ -24,7 +28,7 @@
     </thead>
     <tbody>
         {% for order in orders %}
-        <tr>
+        <tr class="{% if order.workflow_statuses and ('invoiced' in order.workflow_statuses.lower() or 'cancelled' in order.workflow_statuses.lower()) %}hideable{% endif %}">
             <td>{{ loop.index }}</td>
             <td>{{ order.order_number }}</td>
             <td>{{ order.buz_order_number or '-' }}</td>
@@ -48,5 +52,13 @@
         {% endfor %}
     </tbody>
 </table>
+<script>
+document.getElementById('toggleHideable').addEventListener('change', function() {
+  const show = this.checked;
+  document.querySelectorAll('tr.hideable').forEach(row => {
+    row.style.display = show ? '' : 'none';
+  });
+});
+</script>
 </body>
 </html>
