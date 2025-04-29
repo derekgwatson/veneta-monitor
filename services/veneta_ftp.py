@@ -1,5 +1,4 @@
 from ftplib import FTP
-import re
 from datetime import datetime
 from models import db, OrderStatus
 import config
@@ -11,16 +10,15 @@ def poll_veneta_ftp():
     filenames = ftp.nlst()
 
     for filename in filenames:
-        match = re.search(r'(V\d{5})', filename)
-        if match:
-            order_number = match.group(1)
-            order = OrderStatus.query.filter_by(order_number=order_number).first()
-            if not order:
-                order = OrderStatus(order_number=order_number, veneta_ftp_time=datetime.now())
-                db.session.add(order)
-            else:
-                if not order.veneta_ftp_time:
-                    order.veneta_ftp_time = datetime.now()
+        # Just respond to any file, no regex, no order number lookup
+        # Find the first order that has no veneta_ftp_time yet
+        order = OrderStatus.query.filter_by(veneta_ftp_time=None).order_by(OrderStatus.id.asc()).first()
+
+        if order:
+            order.veneta_ftp_time = datetime.utcnow()
             db.session.commit()
+            print(f"✅ Marked order {order.order_number} as received from FTP (file: {filename})")
+        else:
+            print(f"⚠️ No open orders found to match FTP file: {filename}")
 
     ftp.quit()
