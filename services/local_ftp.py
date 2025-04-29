@@ -31,8 +31,8 @@ def poll_local_ftp():
                 db.session.add(new_order)
                 db.session.commit()
                 print(f"✅ Created new order from Local FTP: {order_number}")
-            else:
-                print(f"ℹ️ Order already exists: {order_number}")
+#            else:
+#                print(f"ℹ️ Order already exists: {order_number}")
 
         except Exception as e:
             print(f"❌ Failed parsing file {filepath}: {e}")

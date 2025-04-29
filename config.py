@@ -1,7 +1,7 @@
 VENETA_FTP_HOST = '116.90.48.20'
 VENETA_FTP_USER = 'Newwatson@venetause.com.au'
 VENETA_FTP_PASS = 'jR=tm]J;Aa3x'
-VENETA_FTP_FOLDER = '/public_html/Out'
+VENETA_FTP_FOLDER = '/public_html'
 
 # LOCAL_FTP_FOLDER = '/home/veneta/ftp/files/Out'
 LOCAL_FTP_FOLDER = 'c:\\Users\\Derek\\Downloads\\ftp_test'
