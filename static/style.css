@@ -9,12 +9,6 @@ h1 {
     color: #ffffff;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-
 th, td {
     border: 1px solid #444;
     padding: 10px;
@@ -31,4 +25,29 @@ tr:nth-child(even) {
 
 tr:nth-child(odd) {
     background-color: #161616;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+thead th {
+    position: sticky;
+    top: 0;
+    background: #222; /* Dark background for headings */
+    color: #eee;       /* Light text */
+    z-index: 2;
+    padding: 10px;
+    text-align: left;
+    border-bottom: 2px solid #444;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+/* Style the body rows a bit */
+tbody td {
+    padding: 8px;
+    border-bottom: 1px solid #333;
+    color: #ddd; /* Light gray text for rows */
 }

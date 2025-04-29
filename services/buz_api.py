@@ -1,44 +1,99 @@
+import re
 import requests
 from datetime import datetime, timedelta
 from models import db, OrderStatus
 import config
 
 
-def get_yesterday_cutoff():
-    """Return UTC midnight for yesterday formatted for OData."""
+def get_cutoff_days_ago(days=7):
     now = datetime.utcnow()
-    yesterday = datetime(now.year, now.month, now.day) - timedelta(days=1)
-    return yesterday.strftime('%Y-%m-%dT%H:%M:%SZ')
+    cutoff = datetime(now.year, now.month, now.day) - timedelta(days=days)
+    return cutoff.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def debug_open_orders():
+    open_orders = OrderStatus.query.filter_by(buz_processed_time=None).order_by(OrderStatus.id.asc()).all()
+
+    if not open_orders:
+        print("ℹ️ No open orders found.")
+    else:
+        print(f"✅ Found {len(open_orders)} open orders:")
+        for order in open_orders:
+            print(f"- Order Number: {order.order_number}, "
+                  f"Veneta FTP: {order.veneta_ftp_time}, "
+                  f"Local FTP: {order.local_ftp_time}, "
+                  f"Buz Processed: {order.buz_processed_time}")
+
+
+def parse_buz_date(date_str):
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
+    except ValueError:
+        # Try fallback format
+        try:
+            return datetime.strptime(date_str, '%Y-%m-%d')
+        except ValueError:
+            print(f"❌ Unable to parse Buz date: {date_str}")
+            return None
 
 
 def poll_buz_api():
     """Poll Buz API for yesterday's Veneta orders onward and update matching OrderStatus records."""
-    cutoff = get_yesterday_cutoff()
+    cutoff = get_cutoff_days_ago(360)
     url = (
-        f"{config.BUZ_API_URL}"
-        f"?$filter=startswith(OrderDescn,'Veneta')%20and%20OrderDate%20ge%20{cutoff}"
+        f"{config.BUZ_API_URL}"  # Use SalesReport now
+        f"?$filter=startswith(OrderRef,'Veneta')%20and%20DateDoc%20ge%20{cutoff}"
     )
 
     response = requests.get(url, auth=(config.BUZ_API_USER, config.BUZ_API_PASS))
 
     if response.status_code != 200:
         print(f"Failed to query Buz API: Status {response.status_code}")
-        print(response.text)  # Good for debugging API errors
+        print(response.text)
         return
 
-    sales_orders = response.json().get('value', [])
+    sales_lines = response.json().get('value', [])
 
-    if not sales_orders:
+    if not sales_lines:
         print("No Veneta orders found from yesterday onwards.")
         return
+
+    print("\n🔍 Sample SalesReport line from API:")
+    if sales_lines:
+        import json
+        print(json.dumps(sales_lines[0], indent=2))  # Show first line pretty-printed
+    else:
+        print("⚠️ No data returned from SalesReport.")
 
     open_orders = OrderStatus.query.filter_by(buz_processed_time=None).all()
 
     for open_order in open_orders:
-        for sales_order in sales_orders:
-            order_descn = sales_order.get('OrderDescn', '')  # Correct field name
-            if open_order.order_number in order_descn:
-                open_order.buz_processed_time = datetime.utcnow()
-                db.session.commit()
-                print(f"✅ Matched and updated: {open_order.order_number}")
-                break
+        matched_lines = [
+            line for line in sales_lines
+            if open_order.order_number and open_order.order_number in (line.get('OrderRef') or '')
+        ]
+
+        if matched_lines:
+            # Pull the first OrderNo (they'll all be the same for the order)
+            order_no = matched_lines[0].get('OrderNo', '').strip()
+
+            # Pull all workflow_job_tracking_status values
+            workflow_statuses = [line.get('Workflow_Job_Tracking_Status', '').strip()
+                                 for line in matched_lines if line.get('Workflow_Job_Tracking_Status')]
+
+            workflow_statuses = list(set(workflow_statuses))  # unique
+            workflow_statuses.sort()
+
+            combined_statuses = ', '.join(workflow_statuses)
+
+            open_order.buz_order_number = order_no
+            open_order.workflow_statuses = combined_statuses
+            raw_date = matched_lines[0].get('DateDoc')
+            parsed_date = parse_buz_date(raw_date)
+            if parsed_date:
+                open_order.buz_processed_time = parsed_date
+
+            db.session.commit()
+            print(f"✅ Matched and updated: {open_order.order_number} (statuses: {combined_statuses})")
+        else:
+            print(f"❌ No matching sales lines for order: {open_order.order_number}")

@@ -7,38 +7,46 @@
     <meta http-equiv="refresh" content="30">
 </head>
 <body>
-    <h1>Veneta Order Dashboard</h1>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Order Number</th>
-                <th>Received at Veneta FTP</th>
-                <th>Received at Watson FTP</th>
-                <th>Processed in Buz</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for order in orders %}
-            <tr>
-                <td>{{ order.order_number }}</td>
-                <td>{{ order.veneta_ftp_time or 'Pending' }}</td>
-                <td>{{ order.local_ftp_time or 'Pending' }}</td>
-                <td>{{ order.buz_processed_time or 'Pending' }}</td>
-                <td>
-                    {% if order.buz_processed_time %}
-                        ✅ Processed
-                    {% elif order.local_ftp_time %}
-                        🚛 At Local FTP
-                    {% elif order.veneta_ftp_time %}
-                        📥 Received from Veneta
-                    {% else %}
-                        ⏳ Waiting
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<h1>Veneta Order Dashboard</h1>
+<table border="1">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Veneta Order Number</th>  <!-- Rename for clarity -->
+            <th>Buz Order Number</th>     <!-- NEW -->
+            <th>Received at Veneta FTP</th>
+            <th>Received at Watson FTP</th>
+            <th>Processed in Buz</th>
+            <th>Buz Statuses</th>
+            <th>Source</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in orders %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ order.order_number }}</td>
+            <td>{{ order.buz_order_number or '-' }}</td>
+            <td>{{ order.veneta_ftp_time.strftime('%Y-%m-%d') if order.veneta_ftp_time else '-' }}</td>
+            <td>{{ order.local_ftp_time.strftime('%Y-%m-%d') if order.local_ftp_time else '-' }}</td>
+            <td>{{ order.buz_processed_time.strftime('%Y-%m-%d') if order.buz_processed_time else '-' }}</td>
+            <td>{{ order.workflow_statuses or '-' }}</td>
+            <td>{{ order.src or '-' }}</td>
+            <td>
+                {% if order.buz_processed_time %}
+                    ✅ Processed
+                {% elif order.local_ftp_time %}
+                    🚛 At Local FTP
+                {% elif order.veneta_ftp_time %}
+                    📥 Received from Veneta
+                {% else %}
+                    ⏳ Waiting
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 </body>
 </html>
