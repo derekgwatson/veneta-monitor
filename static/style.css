@@ -30,6 +30,14 @@ tr:nth-child(odd) {
 table {
     border-collapse: collapse;
     width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 0.5s ease-in-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 thead th {
@@ -50,4 +58,13 @@ tbody td {
     padding: 8px;
     border-bottom: 1px solid #333;
     color: #ddd; /* Light gray text for rows */
+}
+
+tbody tr:hover {
+    background-color: #333;
+    cursor: default;
+}
+
+tr.stale {
+    opacity: 0.6;
 }

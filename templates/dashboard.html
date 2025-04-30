@@ -21,6 +21,10 @@
   </label>
 </form>
 
+<p id="lastUpdated" data-utc="{{ now.strftime('%Y-%m-%dT%H:%M:%S') }}Z" style="color: #aaa; font-size: 0.9em;">
+  Last updated: calculating...
+</p>
+
 <table border="1">
     <thead>
         <tr>
@@ -37,25 +41,44 @@
     </thead>
     <tbody>
         {% for order in orders %}
-        <tr class="{% if order.workflow_statuses and ('invoiced' in order.workflow_statuses.lower() or 'cancelled' in order.workflow_statuses.lower()) %}hideable{% endif %}">
+          {% set is_stale = false %}
+
+          {% if not order.buz_processed_time %}
+            {% if order.local_ftp_time and (now - order.local_ftp_time).days > 2 %}
+              {% set is_stale = true %}
+            {% elif order.veneta_ftp_time and (now - order.veneta_ftp_time).days > 2 %}
+              {% set is_stale = true %}
+            {% endif %}
+          {% endif %}
+
+        <tr class="{% if is_stale %}stale {% endif %}{% if order.workflow_statuses and ('invoiced' in order.workflow_statuses.lower() or 'cancelled' in order.workflow_statuses.lower()) %}hideable{% endif %}">
             <td>{{ loop.index }}</td>
             <td>{{ order.order_number }}</td>
             <td>{{ order.buz_order_number or '-' }}</td>
-            <td>{{ order.veneta_ftp_time.strftime('%Y-%m-%d') if order.veneta_ftp_time else '-' }}</td>
-            <td>{{ order.local_ftp_time.strftime('%Y-%m-%d') if order.local_ftp_time else '-' }}</td>
-            <td>{{ order.buz_processed_time.strftime('%Y-%m-%d') if order.buz_processed_time else '-' }}</td>
+            <td>{{ order.veneta_ftp_time.strftime('%d %b %Y') if order.veneta_ftp_time else '-' }}</td>
+            <td>{{ order.local_ftp_time.strftime('%d %b %Y') if order.local_ftp_time else '-' }}</td>
+            <td>{{ order.buz_processed_time.strftime('%d %b %Y') if order.buz_processed_time else '-' }}</td>
             <td>{{ order.workflow_statuses or '-' }}</td>
-            <td>{{ order.src or '-' }}</td>
             <td>
-                {% if order.buz_processed_time %}
-                    ✅ Processed
-                {% elif order.local_ftp_time %}
-                    🚛 At Local FTP
-                {% elif order.veneta_ftp_time %}
-                    📥 Received from Veneta
-                {% else %}
-                    ⏳ Waiting
-                {% endif %}
+              <span class="badge {{ 'bg-success' if order.src == 'Veneta' else 'bg-secondary' }}">
+                {{ order.src or '-' }}
+              </span>
+            </td>
+
+            <td>
+              {% if is_stale %}
+                <span class="badge bg-warning text-dark ms-1">⚠️ Stale</span>
+
+              {% elif order.buz_processed_time %}
+                <span class="badge bg-success">✅ Processed</span>
+              {% elif order.local_ftp_time %}
+                <span class="badge bg-primary">🚛 At Local FTP</span>
+              {% elif order.veneta_ftp_time %}
+                <span class="badge bg-info text-dark">📥 Received from Veneta</span>
+              {% else %}
+                <span class="badge bg-secondary">⏳ Waiting</span>
+              {% endif %}
+
             </td>
         </tr>
         {% endfor %}
@@ -72,5 +95,19 @@ function applyHideableToggle() {
 document.querySelector('input[name="show_invoiced"]').addEventListener('change', applyHideableToggle);
 window.addEventListener('DOMContentLoaded', applyHideableToggle);
 </script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('lastUpdated');
+    const utcTime = el.getAttribute('data-utc');
+    const date = new Date(utcTime);
+    const localString = date.toLocaleString(undefined, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    el.textContent = `Last updated: ${localString}`;
+  });
+</script>
+
 </body>
 </html>
