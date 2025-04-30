@@ -66,7 +66,15 @@ def poll_buz_api():
         print("No Veneta orders found from yesterday onwards.")
         return
 
-    open_orders = OrderStatus.query.filter_by(buz_processed_time=None).all()
+    from sqlalchemy import or_
+
+    open_orders = OrderStatus.query.filter(
+        or_(
+            OrderStatus.buz_processed_time == None,
+            OrderStatus.workflow_statuses == None,
+            OrderStatus.workflow_statuses == ''
+        )
+    ).all()
 
     for open_order in open_orders:
         matched_lines = [
