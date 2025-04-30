@@ -70,12 +70,14 @@ def poll_buz_api():
             # Pull the first OrderNo (they'll all be the same for the order)
             order_no = matched_lines[0].get('OrderNo', '').strip()
 
-            # Pull all workflow_job_tracking_status values
-            workflow_statuses = [line.get('Workflow_Job_Tracking_Status', '').strip()
-                                 for line in matched_lines if line.get('Workflow_Job_Tracking_Status')]
+            workflow_statuses = []
+            
+            for line in matched_lines:
+                status = line.get('Workflow_Job_Tracking_Status') or line.get('Order_Status')
+                if status:
+                    workflow_statuses.append(status.strip())
 
-            workflow_statuses = list(set(workflow_statuses))  # unique
-            workflow_statuses.sort()
+            workflow_statuses = sorted(set(workflow_statuses))
 
             combined_statuses = ', '.join(workflow_statuses)
 
