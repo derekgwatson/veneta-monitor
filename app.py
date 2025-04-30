@@ -31,6 +31,13 @@ def dashboard():
         )
 
     orders = query.order_by(OrderStatus.veneta_ftp_time.desc()).all()
+    for order in orders:
+        order.is_stale = (
+                not order.buz_processed_time and (
+                    (order.local_ftp_time and (datetime.utcnow() - order.local_ftp_time).days > 2) or
+                    (order.veneta_ftp_time and (datetime.utcnow() - order.veneta_ftp_time).days > 2)
+                )
+        )
 
     return render_template(
         'dashboard.html',

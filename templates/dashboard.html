@@ -4,33 +4,42 @@
     <meta charset="UTF-8">
     <title>Veneta Order Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
 <h1>Veneta Order Dashboard</h1>
-<form method="get">
-  <label>
-    <input type="checkbox" name="show_hidden" value="1" onchange="this.form.submit()"
-      {% if show_hidden %}checked{% endif %}>
-    Show stale/unprocessed orders
-  </label>
-  &nbsp;&nbsp;
-  <label>
-    <input type="checkbox" name="show_invoiced" value="1" onchange="this.form.submit()"
-      {% if show_invoiced %}checked{% endif %}>
-    Show Invoiced and Cancelled Orders
-  </label>
-</form>
+
+<div class="toolbar">
+  <div class="filter-options">
+    <label>
+      <input type="checkbox" id="show_hidden"
+        {% if show_hidden %}checked{% endif %}>
+      Show stale/unprocessed
+    </label>
+    <label>
+      <input type="checkbox" id="show_invoiced"
+        {% if show_invoiced %}checked{% endif %}>
+      Show invoiced/cancelled
+    </label>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search orders..." autocomplete="off" />
+    <small style="color:#aaa; font-size: 0.85em;">Search matches any column</small>
+  </div>
+</div>
 
 <p id="lastUpdated" data-utc="{{ now.strftime('%Y-%m-%dT%H:%M:%S') }}Z" style="color: #aaa; font-size: 0.9em;">
   Last updated: calculating...
 </p>
 
-<table border="1">
+<div style="overflow-x: auto; max-height: 70vh;">
+  <table border="1" style="width: 100%; min-width: 800px;">
     <thead>
         <tr>
             <th>#</th>
-            <th>Veneta Order Number</th>  <!-- Rename for clarity -->
-            <th>Buz Order Number</th>     <!-- NEW -->
+            <th>Veneta Order Number</th>
+            <th>Buz Order Number</th>
             <th>Received at Veneta FTP</th>
             <th>Received at Watson FTP</th>
             <th>Processed in Buz</th>
@@ -41,17 +50,8 @@
     </thead>
     <tbody>
         {% for order in orders %}
-          {% set is_stale = false %}
 
-          {% if not order.buz_processed_time %}
-            {% if order.local_ftp_time and (now - order.local_ftp_time).days > 2 %}
-              {% set is_stale = true %}
-            {% elif order.veneta_ftp_time and (now - order.veneta_ftp_time).days > 2 %}
-              {% set is_stale = true %}
-            {% endif %}
-          {% endif %}
-
-        <tr class="{% if is_stale %}stale {% endif %}{% if order.workflow_statuses and ('invoiced' in order.workflow_statuses.lower() or 'cancelled' in order.workflow_statuses.lower()) %}hideable{% endif %}">
+        <tr class="{% if order.is_stale %}stale {% endif %}{% if order.workflow_statuses and ('invoiced' in order.workflow_statuses.lower() or 'cancelled' in order.workflow_statuses.lower()) %}hideable{% endif %}">
             <td>{{ loop.index }}</td>
             <td>{{ order.order_number }}</td>
             <td>{{ order.buz_order_number or '-' }}</td>
@@ -66,7 +66,7 @@
             </td>
 
             <td>
-              {% if is_stale %}
+              {% if order.is_stale %}
                 <span class="badge bg-warning text-dark ms-1">⚠️ Stale</span>
 
               {% elif order.buz_processed_time %}
@@ -83,30 +83,75 @@
         </tr>
         {% endfor %}
     </tbody>
-</table>
+  </table>
+</div>
+
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('lastUpdated');
+    const utcTime = el.getAttribute('data-utc');
+    if (utcTime) {
+        const date = new Date(utcTime);
+        const localString = date.toLocaleString(undefined, {
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+        el.textContent = `Last updated: ${localString}`;
+    }
+});
+
+let autoEnabledInvoicedCheckbox = false;
+
 function applyHideableToggle() {
-  const show = document.querySelector('input[name="show_invoiced"]').checked;
+  const show = document.getElementById('show_invoiced').checked;
   document.querySelectorAll('tr.hideable').forEach(row => {
-    row.style.display = show ? '' : 'none';
+    row.classList.toggle('hidden-by-checkbox', !show);
   });
 }
 
-document.querySelector('input[name="show_invoiced"]').addEventListener('change', applyHideableToggle);
-window.addEventListener('DOMContentLoaded', applyHideableToggle);
-</script>
+function applySearchFilter() {
+  const input = document.getElementById('searchInput').value.trim().toLowerCase();
+  const rows = document.querySelectorAll('tbody tr');
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const el = document.getElementById('lastUpdated');
-    const utcTime = el.getAttribute('data-utc');
-    const date = new Date(utcTime);
-    const localString = date.toLocaleString(undefined, {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
+  // If search is empty, reset table
+  if (input === '') {
+    rows.forEach(row => {
+      row.style.display = '';
+      row.classList.remove('matches-search');
     });
-    el.textContent = `Last updated: ${localString}`;
+    return;
+  }
+
+  let hasMatchHiddenByCheckbox = false;
+
+  rows.forEach(row => {
+    const rowText = row.textContent.toLowerCase();
+    const matches = rowText.includes(input);
+
+    row.classList.toggle('matches-search', matches);
+    row.style.display = matches ? '' : 'none';
+
+    if (matches && row.classList.contains('hideable') && row.classList.contains('hidden-by-checkbox')) {
+      hasMatchHiddenByCheckbox = true;
+    }
   });
+
+  if (hasMatchHiddenByCheckbox && !autoEnabledInvoicedCheckbox) {
+    const checkbox = document.getElementById('show_invoiced');
+    if (checkbox && !checkbox.checked) {
+      checkbox.checked = true;
+      autoEnabledInvoicedCheckbox = true;
+      applyHideableToggle();
+    }
+  }
+}
+
+document.getElementById('show_invoiced').addEventListener('change', applyHideableToggle);
+document.getElementById('searchInput').addEventListener('input', applySearchFilter);
+window.addEventListener('DOMContentLoaded', () => {
+  applyHideableToggle();
+  applySearchFilter();
+});
 </script>
 
 </body>
