@@ -26,18 +26,7 @@ def poll_local_ftp():
 
             order_number = pono_element.text.strip()
             mod_time = datetime.fromtimestamp(os.path.getmtime(filepath))
-
-            order = OrderStatus.query.filter_by(order_number=order_number).first()
-
-            if not order:
-                create_or_update_order(order_number, local_time=mod_time, src='Local')
-                print(f"✅ Created new order from Local FTP: {order_number}")
-            elif not order.local_ftp_time:
-                order.local_ftp_time = mod_time
-                db.session.commit()
-                print(f"✅ Updated local_ftp_time for order: {order_number}")
-            else:
-                print(f"ℹ️ Order already exists with local_ftp_time: {order_number}")
+            create_or_update_order(order_number, local_time=mod_time, src='Local')
 
         except Exception as e:
             print(f"❌ Failed parsing file {filepath}: {e}")

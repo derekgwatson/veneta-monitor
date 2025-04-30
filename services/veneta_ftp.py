@@ -62,14 +62,9 @@ def poll_veneta_ftp():
                 continue
 
             order_number = pono_element.text.strip()
-            existing = OrderStatus.query.filter_by(order_number=order_number).first()
-            if not existing:
-                timestamp = ftp.sendcmd(f"MDTM {filepath}")[4:].strip()  # e.g. "20250429040355"
-                ftp_time = datetime.strptime(timestamp, '%Y%m%d%H%M%S')
-                create_or_update_order(order_number, veneta_time=ftp_time, src='Veneta')
-                print(f"✅ Created new order from {ftp_descr} FTP: {order_number}")
-#            else:
-#                print(f"ℹ️ Order already exists: {order_number}")
+            timestamp = ftp.sendcmd(f"MDTM {filepath}")[4:].strip()  # e.g. "20250429040355"
+            ftp_time = datetime.strptime(timestamp, '%Y%m%d%H%M%S')
+            create_or_update_order(order_number, veneta_time=ftp_time, src='Veneta')
 
         except Exception as e:
             print(f"❌ Failed parsing file {filepath}: {e}")
