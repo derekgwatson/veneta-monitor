@@ -71,7 +71,7 @@ def poll_buz_api():
             order_no = matched_lines[0].get('OrderNo', '').strip()
 
             workflow_statuses = []
-            
+
             for line in matched_lines:
                 status = line.get('Workflow_Job_Tracking_Status') or line.get('Order_Status')
                 if status:
