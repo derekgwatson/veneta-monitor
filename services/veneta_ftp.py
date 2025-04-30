@@ -4,13 +4,13 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from models import db, OrderStatus
 import config
+from services.helper import create_or_update_order
 
 
 def recursive_list_files(ftp, path):
     file_list = []
 
     try:
-#        ftp.cwd(path)
         items = ftp.nlst()
     except error_perm:
         if path.lower().endswith('.xml'):
@@ -41,14 +41,11 @@ def poll_veneta_ftp():
     ftp = FTP(config.VENETA_FTP_HOST)
     ftp.login(config.VENETA_FTP_USER, config.VENETA_FTP_PASS)
     ftp.cwd(config.VENETA_FTP_FOLDER)
-    poll_ftp(ftp, "Veneta")
 
-
-def poll_ftp(ftp, ftp_descr):
     all_xml_files = recursive_list_files(ftp, '.')
     all_xml_files = [f.lstrip('./') for f in all_xml_files]  # Clean up leading ./
 
-    print(f"✅ Found {len(all_xml_files)} XML files on {ftp_descr} FTP")
+    print(f"✅ Found {len(all_xml_files)} XML files on Veneta FTP")
 
     for filepath in all_xml_files:
         # Download and parse file
@@ -69,12 +66,7 @@ def poll_ftp(ftp, ftp_descr):
             if not existing:
                 timestamp = ftp.sendcmd(f"MDTM {filepath}")[4:].strip()  # e.g. "20250429040355"
                 ftp_time = datetime.strptime(timestamp, '%Y%m%d%H%M%S')
-                if ftp_descr == 'Veneta':
-                    new_order = OrderStatus(order_number=order_number, veneta_ftp_time=ftp_time, src=f'{ftp_descr}')
-                else:
-                    new_order = OrderStatus(order_number=order_number, local_ftp_time=ftp_time, src=f'{ftp_descr}')
-                db.session.add(new_order)
-                db.session.commit()
+                create_or_update_order(order_number, veneta_time=ftp_time, src='Veneta')
                 print(f"✅ Created new order from {ftp_descr} FTP: {order_number}")
 #            else:
 #                print(f"ℹ️ Order already exists: {order_number}")

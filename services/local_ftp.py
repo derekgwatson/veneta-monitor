@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from models import db, OrderStatus
 import config
+from services.helper import create_or_update_order
 
 
 def poll_local_ftp():
@@ -29,9 +30,7 @@ def poll_local_ftp():
             order = OrderStatus.query.filter_by(order_number=order_number).first()
 
             if not order:
-                new_order = OrderStatus(order_number=order_number, local_ftp_time=mod_time, src='Local')
-                db.session.add(new_order)
-                db.session.commit()
+                create_or_update_order(order_number, local_time=mod_time, src='Local')
                 print(f"✅ Created new order from Local FTP: {order_number}")
             elif not order.local_ftp_time:
                 order.local_ftp_time = mod_time

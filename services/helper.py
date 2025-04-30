@@ -1,22 +1,20 @@
-from ftplib import error_perm
+from models import db, OrderStatus
 
 
-def recursive_list_files(ftp, path):
-    file_list = []
-    original_path = ftp.pwd()
-    ftp.cwd(path)
-    items = ftp.nlst()
+def create_or_update_order(order_number, veneta_time=None, local_time=None, src=None):
+    order = OrderStatus.query.filter_by(order_number=order_number).first()
 
-    for item in items:
-        item_path = f"{path}/{item}".replace('//', '/')
+    if not order:
+        order = OrderStatus(order_number=order_number, src=src)
+        print(f"✅ Creating new order: {order_number}")
 
-        try:
-            ftp.cwd(item_path)
-            file_list.extend(recursive_list_files(ftp, item_path))  # ✅ pass ftp
-            ftp.cwd('..')  # go back
-        except error_perm:
-            if item.lower().endswith('.xml'):
-                file_list.append(item_path)
+    if veneta_time and not order.veneta_ftp_time:
+        order.veneta_ftp_time = veneta_time
+        print(f"🕒 Set veneta_ftp_time for {order_number}")
 
-    ftp.cwd(original_path)  # Go back to starting folder
-    return file_list
+    if local_time and not order.local_ftp_time:
+        order.local_ftp_time = local_time
+        print(f"🕒 Set local_ftp_time for {order_number}")
+
+    db.session.add(order)
+    db.session.commit()
