@@ -58,13 +58,6 @@ def poll_buz_api():
         print("No Veneta orders found from yesterday onwards.")
         return
 
-    print("\n🔍 Sample SalesReport line from API:")
-    if sales_lines:
-        import json
-        print(json.dumps(sales_lines[0], indent=2))  # Show first line pretty-printed
-    else:
-        print("⚠️ No data returned from SalesReport.")
-
     open_orders = OrderStatus.query.filter_by(buz_processed_time=None).all()
 
     for open_order in open_orders:
