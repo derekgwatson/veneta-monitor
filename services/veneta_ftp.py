@@ -2,9 +2,8 @@ from io import BytesIO
 from ftplib import FTP, error_perm
 import xml.etree.ElementTree as ET
 from datetime import datetime
-from models import db, OrderStatus
 import config
-from services.helper import create_or_update_order
+from services.helper import create_or_update_order, log_debug
 
 
 def recursive_list_files(ftp, path):
@@ -45,7 +44,7 @@ def poll_veneta_ftp():
     all_xml_files = recursive_list_files(ftp, '.')
     all_xml_files = [f.lstrip('./') for f in all_xml_files]  # Clean up leading ./
 
-    print(f"✅ Found {len(all_xml_files)} XML files on Veneta FTP")
+    log_debug(f"✅ Found {len(all_xml_files)} XML files on Veneta FTP")
 
     for filepath in all_xml_files:
         # Download and parse file
@@ -58,7 +57,7 @@ def poll_veneta_ftp():
             root = tree.getroot()
             pono_element = root.find('.//PONO')
             if pono_element is None or not pono_element.text:
-                print(f"⚠️ No PONO found in {filepath}")
+                log_debug(f"⚠️ No PONO found in {filepath}")
                 continue
 
             order_number = pono_element.text.strip()
@@ -67,6 +66,6 @@ def poll_veneta_ftp():
             create_or_update_order(order_number, veneta_time=ftp_time, src='Veneta')
 
         except Exception as e:
-            print(f"❌ Failed parsing file {filepath}: {e}")
+            log_debug(f"❌ Failed parsing file {filepath}: {e}")
 
     ftp.quit()

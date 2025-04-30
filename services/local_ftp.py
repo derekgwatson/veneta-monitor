@@ -1,9 +1,8 @@
 import os
 import xml.etree.ElementTree as ET
 from datetime import datetime
-from models import db, OrderStatus
 import config
-from services.helper import create_or_update_order
+from services.helper import create_or_update_order, log_debug
 
 
 def poll_local_ftp():
@@ -13,7 +12,7 @@ def poll_local_ftp():
             if filename.lower().endswith('.xml'):
                 all_xml_files.append(os.path.join(root, filename))
 
-    print(f"✅ Found {len(all_xml_files)} XML files in Local FTP folder")
+    log_debug(f"✅ Found {len(all_xml_files)} XML files in Local FTP folder")
 
     for filepath in all_xml_files:
         try:
@@ -21,7 +20,7 @@ def poll_local_ftp():
             root = tree.getroot()
             pono_element = root.find('.//PONO')
             if pono_element is None or not pono_element.text:
-                print(f"⚠️ No PONO found in {filepath}")
+                log_debug(f"⚠️ No PONO found in {filepath}")
                 continue
 
             order_number = pono_element.text.strip()
@@ -29,4 +28,4 @@ def poll_local_ftp():
             create_or_update_order(order_number, local_time=mod_time, src='Local')
 
         except Exception as e:
-            print(f"❌ Failed parsing file {filepath}: {e}")
+            log_debug(f"❌ Failed parsing file {filepath}: {e}")

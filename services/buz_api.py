@@ -1,4 +1,4 @@
-import re
+from services.helper import log_debug
 import requests
 from datetime import datetime, timedelta
 from models import db, OrderStatus
@@ -23,11 +23,11 @@ def debug_open_orders():
     ).all()
 
     if not open_orders:
-        print("ℹ️ No open orders found.")
+        log_debug("ℹ️ No open orders found.")
     else:
-        print(f"✅ Found {len(open_orders)} open orders:")
+        log_debug(f"✅ Found {len(open_orders)} open orders:")
         for order in open_orders:
-            print(f"- Order Number: {order.order_number}, "
+            log_debug(f"- Order Number: {order.order_number}, "
                   f"Veneta FTP: {order.veneta_ftp_time}, "
                   f"Local FTP: {order.local_ftp_time}, "
                   f"Buz Processed: {order.buz_processed_time}")
@@ -41,7 +41,7 @@ def parse_buz_date(date_str):
         try:
             return datetime.strptime(date_str, '%Y-%m-%d')
         except ValueError:
-            print(f"❌ Unable to parse Buz date: {date_str}")
+            log_debug(f"❌ Unable to parse Buz date: {date_str}")
             return None
 
 
@@ -56,14 +56,14 @@ def poll_buz_api():
     response = requests.get(url, auth=(config.BUZ_API_USER, config.BUZ_API_PASS))
 
     if response.status_code != 200:
-        print(f"Failed to query Buz API: Status {response.status_code}")
-        print(response.text)
+        log_debug(f"Failed to query Buz API: Status {response.status_code}")
+        log_debug(response.text)
         return
 
     sales_lines = response.json().get('value', [])
 
     if not sales_lines:
-        print("No Veneta orders found from yesterday onwards.")
+        log_debug("No Veneta orders found from yesterday onwards.")
         return
 
     from sqlalchemy import or_
@@ -105,6 +105,6 @@ def poll_buz_api():
                 open_order.buz_processed_time = parsed_date
 
             db.session.commit()
-            print(f"✅ Matched and updated: {open_order.order_number} (statuses: {combined_statuses})")
+            log_debug(f"✅ Matched and updated: {open_order.order_number} (statuses: {combined_statuses})")
         else:
-            print(f"❌ No matching sales lines for order: {open_order.order_number}")
+            log_debug(f"❌ No matching sales lines for order: {open_order.order_number}")
