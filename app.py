@@ -1,6 +1,8 @@
-from flask import Flask, render_template
+from datetime import datetime, timedelta
+from flask import Flask, render_template, request
 from models import db, OrderStatus
 import config
+from sqlalchemy import or_
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{config.DATABASE_FILE}'
@@ -13,8 +15,31 @@ with app.app_context():
 
 @app.route('/')
 def dashboard():
-    orders = OrderStatus.query.order_by(OrderStatus.veneta_ftp_time.desc()).all()
-    return render_template('dashboard.html', orders=orders)
+    show_hidden = request.args.get('show_hidden') == '1'
+    show_invoiced = request.args.get('show_invoiced') == '1'
+
+    cutoff = datetime.utcnow() - timedelta(days=5)
+
+    query = OrderStatus.query.filter_by(dismissed=False)
+
+    if not show_hidden:
+        query = query.filter(
+            or_(
+                OrderStatus.buz_processed_time != None,
+                OrderStatus.veneta_ftp_time > cutoff
+            )
+        )
+
+    orders = query.order_by(OrderStatus.veneta_ftp_time.desc()).all()
+
+    return render_template(
+        'dashboard.html',
+        orders=orders,
+        show_hidden=show_hidden,
+        show_invoiced=show_invoiced,
+        now=datetime.utcnow(),
+        timedelta=timedelta
+    )
 
 
 if __name__ == "__main__":

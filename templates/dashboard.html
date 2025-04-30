@@ -7,10 +7,20 @@
 </head>
 <body>
 <h1>Veneta Order Dashboard</h1>
-<label>
-  <input type="checkbox" id="toggleHideable" checked>
-  Show Invoiced and Cancelled Orders
-</label>
+<form method="get">
+  <label>
+    <input type="checkbox" name="show_hidden" value="1" onchange="this.form.submit()"
+      {% if show_hidden %}checked{% endif %}>
+    Show stale/unprocessed orders
+  </label>
+  &nbsp;&nbsp;
+  <label>
+    <input type="checkbox" name="show_invoiced" value="1" onchange="this.form.submit()"
+      {% if show_invoiced %}checked{% endif %}>
+    Show Invoiced and Cancelled Orders
+  </label>
+</form>
+
 <table border="1">
     <thead>
         <tr>
@@ -52,12 +62,15 @@
     </tbody>
 </table>
 <script>
-document.getElementById('toggleHideable').addEventListener('change', function() {
-  const show = this.checked;
+function applyHideableToggle() {
+  const show = document.querySelector('input[name="show_invoiced"]').checked;
   document.querySelectorAll('tr.hideable').forEach(row => {
     row.style.display = show ? '' : 'none';
   });
-});
+}
+
+document.querySelector('input[name="show_invoiced"]').addEventListener('change', applyHideableToggle);
+window.addEventListener('DOMContentLoaded', applyHideableToggle);
 </script>
 </body>
 </html>
