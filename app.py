@@ -18,7 +18,8 @@ def dashboard():
     show_hidden = request.args.get('show_hidden') == '1'
     show_invoiced = request.args.get('show_invoiced') == '1'
 
-    cutoff = datetime.utcnow() - timedelta(days=5)
+    now = datetime.utcnow()
+    cutoff = now - timedelta(days=5)
 
     query = OrderStatus.query.filter_by(dismissed=False)
 
@@ -31,11 +32,12 @@ def dashboard():
         )
 
     orders = query.order_by(OrderStatus.veneta_ftp_time.desc()).all()
+
     for order in orders:
         order.is_stale = (
                 not order.buz_processed_time and (
-                    (order.local_ftp_time and (datetime.utcnow() - order.local_ftp_time).days > 2) or
-                    (order.veneta_ftp_time and (datetime.utcnow() - order.veneta_ftp_time).days > 2)
+                    (order.local_ftp_time and (now - order.local_ftp_time).days > 2) or
+                    (order.veneta_ftp_time and (now - order.veneta_ftp_time).days > 2)
                 )
         )
 
