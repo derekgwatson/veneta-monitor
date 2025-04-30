@@ -12,7 +12,15 @@ def get_cutoff_days_ago(days=7):
 
 
 def debug_open_orders():
-    open_orders = OrderStatus.query.filter_by(buz_processed_time=None).order_by(OrderStatus.id.asc()).all()
+    from sqlalchemy import or_
+
+    open_orders = OrderStatus.query.filter(
+        or_(
+            OrderStatus.buz_processed_time == None,
+            OrderStatus.workflow_statuses == None,
+            OrderStatus.workflow_statuses == ''
+        )
+    ).all()
 
     if not open_orders:
         print("ℹ️ No open orders found.")
