@@ -7,6 +7,7 @@ from services.helper import create_or_update_order, log_debug
 
 def poll_local_ftp():
     all_xml_files = []
+    log_debug(f"Polling local FTP folder: {config.LOCAL_FTP_FOLDER}")
     for root, dirs, files in os.walk(config.LOCAL_FTP_FOLDER):
         for filename in files:
             if filename.lower().endswith('.xml'):
