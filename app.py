@@ -46,7 +46,7 @@ def dashboard():
         orders=orders,
         show_hidden=show_hidden,
         show_invoiced=show_invoiced,
-        now=datetime.utcnow(),
+        now=now,
         timedelta=timedelta
     )
 
