@@ -15,6 +15,6 @@ if os.getenv("APP_ENV", "dev") == "prod":
     LOCAL_FTP_FOLDER = '/home/veneta/ftp/files'
     POLL_INTERVAL_SECONDS = 60  # how often to check
 else:
-    LOCAL_FTP_FOLDER = 'c:\\Users\\Derek\\Downloads\\ftp_test'
+    LOCAL_FTP_FOLDER = 'C:\\Users\\Derek\\Downloads\\test_ftp\\files'
     POLL_INTERVAL_SECONDS = 5  # how often to check
 
