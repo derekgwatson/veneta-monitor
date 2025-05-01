@@ -76,6 +76,10 @@ tr.hidden-by-checkbox {
   display: none !important;
 }
 
+tr.hidden-by-stale-checkbox {
+  display: none !important;
+}
+
 input[type="checkbox"], input[type="text"] {
     background-color: #1f1f1f;
     color: #e0e0e0;

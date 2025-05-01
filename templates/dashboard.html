@@ -12,12 +12,12 @@
 <div class="toolbar">
   <div class="filter-options">
     <label>
-      <input type="checkbox" id="show_hidden"
+      <input type="checkbox" id="show_hidden" name="show_hidden"
         {% if show_hidden %}checked{% endif %}>
       Show stale/unprocessed
     </label>
     <label>
-      <input type="checkbox" id="show_invoiced"
+      <input type="checkbox" id="show_invoiced" name="show_invoiced"
         {% if show_invoiced %}checked{% endif %}>
       Show invoiced/cancelled
     </label>
@@ -70,7 +70,7 @@
                 <span class="badge bg-warning text-dark ms-1">⚠️ Stale</span>
 
               {% elif order.buz_processed_time %}
-                <span class="badge bg-success">✅ Processed</span>
+                <span class="badge bg-success">✅ In Buz</span>
               {% elif order.local_ftp_time %}
                 <span class="badge bg-primary">🚛 At Local FTP</span>
               {% elif order.veneta_ftp_time %}
@@ -88,71 +88,79 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const el = document.getElementById('lastUpdated');
-    const utcTime = el.getAttribute('data-utc');
-    if (utcTime) {
-        const date = new Date(utcTime);
-        const localString = date.toLocaleString(undefined, {
-          year: 'numeric', month: '2-digit', day: '2-digit',
-          hour: '2-digit', minute: '2-digit', second: '2-digit'
-        });
-        el.textContent = `Last updated: ${localString}`;
-    }
-});
-
-let autoEnabledInvoicedCheckbox = false;
-
-function applyHideableToggle() {
-  const show = document.getElementById('show_invoiced').checked;
-  document.querySelectorAll('tr.hideable').forEach(row => {
-    row.classList.toggle('hidden-by-checkbox', !show);
-  });
-}
-
-function applySearchFilter() {
-  const input = document.getElementById('searchInput').value.trim().toLowerCase();
-  const rows = document.querySelectorAll('tbody tr');
-
-  // If search is empty, reset table
-  if (input === '') {
-    rows.forEach(row => {
-      row.style.display = '';
-      row.classList.remove('matches-search');
+  const el = document.getElementById('lastUpdated');
+  const utcTime = el.getAttribute('data-utc');
+  if (utcTime) {
+    const date = new Date(utcTime);
+    const localString = date.toLocaleString(undefined, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
-    return;
+    el.textContent = `Last updated: ${localString}`;
   }
 
-  let hasMatchHiddenByCheckbox = false;
+  // ✅ Handle checkbox changes
+  const showHidden = document.getElementById('show_hidden');
+  const showInvoiced = document.getElementById('show_invoiced');
 
-  rows.forEach(row => {
-    const rowText = row.textContent.toLowerCase();
-    const matches = rowText.includes(input);
+  function updateQueryParams() {
+    const params = new URLSearchParams(window.location.search);
+    showHidden.checked ? params.set('show_hidden', '1') : params.delete('show_hidden');
+    showInvoiced.checked ? params.set('show_invoiced', '1') : params.delete('show_invoiced');
+    window.location.search = params.toString();
+  }
 
-    row.classList.toggle('matches-search', matches);
-    row.style.display = matches ? '' : 'none';
+  showHidden.addEventListener('change', updateQueryParams);
+  showInvoiced.addEventListener('change', updateQueryParams);
 
-    if (matches && row.classList.contains('hideable') && row.classList.contains('hidden-by-checkbox')) {
-      hasMatchHiddenByCheckbox = true;
-    }
+  // ✅ Apply invoiced visibility filter
+  const showInvoicedRows = showInvoiced.checked;
+  document.querySelectorAll('tr.hideable').forEach(row => {
+    row.classList.toggle('hidden-by-checkbox', !showInvoicedRows);
   });
 
-  if (hasMatchHiddenByCheckbox && !autoEnabledInvoicedCheckbox) {
-    const checkbox = document.getElementById('show_invoiced');
-    if (checkbox && !checkbox.checked) {
-      checkbox.checked = true;
-      autoEnabledInvoicedCheckbox = true;
-      applyHideableToggle();
-    }
-  }
-}
+  // ✅ Apply stale visibility filter
+  const showStaleRows = showHidden.checked;
+  document.querySelectorAll('tr.stale').forEach(row => {
+    row.classList.toggle('hidden-by-stale-checkbox', !showStaleRows);
+  });
 
-document.getElementById('show_invoiced').addEventListener('change', applyHideableToggle);
-document.getElementById('searchInput').addEventListener('input', applySearchFilter);
-window.addEventListener('DOMContentLoaded', () => {
-  applyHideableToggle();
-  applySearchFilter();
+  // ✅ Search
+  let autoEnabledInvoicedCheckbox = false;
+  const searchInput = document.getElementById('searchInput');
+  searchInput.addEventListener('input', () => {
+    const term = searchInput.value.trim().toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+
+    if (term === '') {
+      rows.forEach(row => {
+        row.style.display = '';
+        row.classList.remove('matches-search');
+      });
+      return;
+    }
+
+    let matchedHidden = false;
+
+    rows.forEach(row => {
+      const match = row.textContent.toLowerCase().includes(term);
+      row.style.display = match ? '' : 'none';
+      row.classList.toggle('matches-search', match);
+
+      if (match && row.classList.contains('hidden-by-checkbox')) {
+        matchedHidden = true;
+      }
+    });
+
+    if (matchedHidden && !autoEnabledInvoicedCheckbox) {
+      showInvoiced.checked = true;
+      autoEnabledInvoicedCheckbox = true;
+      updateQueryParams(); // Will reload page with invoiced shown
+    }
+  });
 });
 </script>
+
 
 </body>
 </html>
