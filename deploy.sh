@@ -30,6 +30,9 @@ echo "🌐 Environment: $ENV"
 echo "🔁 Pulling latest code in $CURRENT_DIR..."
 sudo -u www-data git -C "$CURRENT_DIR" pull || { echo "❌ Git pull failed ($ENV)"; exit 1; }
 
+echo "🔄 Restarting systemctl daemon..."
+sudo systemctl daemon-reload || { echo "❌ Failed to restart systemctl daemon"; exit 1; }
+
 echo "🔄 Restarting $ENV Flask web app..."
 sudo systemctl restart "$WEB_SERVICE" || { echo "❌ Failed to restart web app ($ENV)"; exit 1; }
 

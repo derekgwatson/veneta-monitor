@@ -11,11 +11,16 @@ BUZ_API_SCHEDULE_URL = 'https://api.buzmanager.com/reports/WATSO/JobsScheduleDet
 BUZ_API_USER = 'derek+buzcbr@watsonblinds.com.au'
 BUZ_API_PASS = 'Bentknob84'
 
-DATABASE_FILE = 'orders.db'
+basedir = os.path.abspath(os.path.dirname(__file__))
+DATABASE_FILE = os.path.join(basedir, 'orders.db')
 
 LOG_FILE = os.path.join(tempfile.gettempdir(), "veneta_monitor.log")
 
 if os.getenv("APP_ENV", "dev") == "prod":
+    DEBUG = False
+    LOCAL_FTP_FOLDER = '/home/veneta/ftp/files'
+    POLL_INTERVAL_SECONDS = 60  # how often to check
+elif os.getenv("APP_ENV", "dev") == "staging":
     DEBUG = False
     LOCAL_FTP_FOLDER = '/home/veneta/ftp/files'
     POLL_INTERVAL_SECONDS = 60  # how often to check
