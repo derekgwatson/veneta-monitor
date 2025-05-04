@@ -16,6 +16,7 @@ class OrderStatus(db.Model):
     src = db.Column(db.String(20))  # 👈 NEW: 'Veneta', 'Local', 'Buz'
     workflow_statuses = db.Column(db.String, nullable=True)
     dismissed = db.Column(Boolean, default=False)
+    date_scheduled = db.Column(db.DateTime, nullable=True)
 
     from datetime import datetime, timedelta
 

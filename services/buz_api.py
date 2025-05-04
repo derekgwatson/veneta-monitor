@@ -46,8 +46,20 @@ def parse_buz_date(date_str):
 
 
 def poll_buz_api():
-    """Poll Buz API for yesterday's Veneta orders onward and update matching OrderStatus records."""
+    """Poll Buz API for Veneta orders and update matching OrderStatus records."""
     cutoff = get_cutoff_days_ago(360)
+    url = (
+        f"{config.BUZ_API_SCHEDULE_URL}"
+        f"?$filter=startswith(Descn,'Veneta')%20and%20DateDoc%20ge%20{cutoff}"
+    )
+    schedule_response = requests.get(url, auth=(config.BUZ_API_USER, config.BUZ_API_PASS))
+
+    if schedule_response.status_code != 200:
+        log_debug(f"⚠️ Failed to fetch scheduled dates: {schedule_response.status_code}")
+        scheduled_lines = []
+    else:
+        scheduled_lines = schedule_response.json().get('value', [])
+
     url = (
         f"{config.BUZ_API_URL}"  # Use SalesReport now
         f"?$filter=startswith(OrderRef,'Veneta')%20and%20DateDoc%20ge%20{cutoff}"
@@ -85,6 +97,23 @@ def poll_buz_api():
         if matched_lines:
             # Pull the first OrderNo (they'll all be the same for the order)
             order_no = matched_lines[0].get('OrderNo', '').strip()
+
+            log_debug(f"🔍 Checking DateScheduled match for {order_no}")
+            for line in scheduled_lines:
+                ref_no = (line.get("RefNo") or "").strip()
+                if order_no == ref_no:
+                    log_debug(f"✅ Match found: RefNo={ref_no}, DateScheduled={line.get('DateScheduled')}")
+
+            matched_sched = next(
+                (line for line in scheduled_lines if order_no == line.get("RefNo") or ""),
+                None
+            )
+
+            if matched_sched:
+                raw_sched_date = matched_sched.get("DateScheduled")
+                parsed_sched = parse_buz_date(raw_sched_date)
+                if parsed_sched:
+                    open_order.date_scheduled = parsed_sched
 
             workflow_statuses = []
 

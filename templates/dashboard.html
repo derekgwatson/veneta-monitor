@@ -43,6 +43,7 @@
             <th>Received at Veneta FTP</th>
             <th>Received at Watson FTP</th>
             <th>Processed in Buz</th>
+            <th>Date Scheduled</th>
             <th>Buz Status</th>
             <th>Source</th>
             <th>Status</th>
@@ -58,6 +59,7 @@
             <td>{{ order.veneta_ftp_time.strftime('%d %b %Y') if order.veneta_ftp_time else '-' }}</td>
             <td>{{ order.local_ftp_time.strftime('%d %b %Y') if order.local_ftp_time else '-' }}</td>
             <td>{{ order.buz_processed_time.strftime('%d %b %Y') if order.buz_processed_time else '-' }}</td>
+            <td>{{ order.date_scheduled.strftime('%d %b %Y') if order.date_scheduled else '' }}</td>
             <td>{{ order.workflow_statuses or '-' }}</td>
             <td>
               <span class="badge {{ 'bg-success' if order.src == 'Veneta' else 'bg-secondary' }}">

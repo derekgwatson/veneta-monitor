@@ -7,6 +7,7 @@ VENETA_FTP_PASS = 'jR=tm]J;Aa3x'
 VENETA_FTP_FOLDER = '/public_html'
 
 BUZ_API_URL = 'https://api.buzmanager.com/reports/WATSO/SalesReport'
+BUZ_API_SCHEDULE_URL = 'https://api.buzmanager.com/reports/WATSO/JobsScheduleDetailed'
 BUZ_API_USER = 'derek+buzcbr@watsonblinds.com.au'
 BUZ_API_PASS = 'Bentknob84'
 
