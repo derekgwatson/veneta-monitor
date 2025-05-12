@@ -21,7 +21,7 @@ if os.getenv("APP_ENV", "dev") == "prod":
     LOCAL_FTP_FOLDER = '/home/veneta/ftp/files'
     POLL_INTERVAL_SECONDS = 60  # how often to check
 elif os.getenv("APP_ENV", "dev") == "staging":
-    DEBUG = False
+    DEBUG = True
     LOCAL_FTP_FOLDER = '/home/veneta/ftp/files'
     POLL_INTERVAL_SECONDS = 60  # how often to check
 else:
