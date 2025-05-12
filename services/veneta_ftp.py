@@ -1,53 +1,50 @@
 from io import BytesIO
-from ftplib import FTP, error_perm
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import config
-from services.helper import create_or_update_order, log_debug
+from services.helper import create_or_update_order, logger
+import ftplib
 
 
-def recursive_list_files(ftp, path):
+def recursive_list_files(ftp, path="."):
     file_list = []
-
     try:
+        ftp.cwd(path)
         items = ftp.nlst()
-    except error_perm:
-        if path.lower().endswith('.xml'):
-            file_list.append(path)
-        return file_list
+        for item in items:
+            if item in ('.', '..'):
+                continue
 
-    for item in items:
-        if item in ('.', '..'):
-            continue
+            full_path = f"{path}/{item}".replace("//", "/")
 
-        full_path = f"{path}/{item}".replace('//', '/')
-
-        try:
-            # Try changing into the item to see if it's a folder
-            ftp.cwd(full_path)
-            # If success: it's a directory → recurse
-            file_list.extend(recursive_list_files(ftp, full_path))
-            ftp.cwd('..')  # ← This is critical to return back
-        except error_perm:
-            # Not a folder, check for .xml
-            if item.lower().endswith('.xml'):
-                file_list.append(full_path)
-
+            try:
+                ftp.cwd(full_path)  # Try to enter subdirectory
+                logger.debug(f"📁 Entering directory: {full_path}")
+                file_list.extend(recursive_list_files(ftp, full_path))
+                ftp.cwd("..")  # Go back up after recursion
+            except ftplib.error_perm:
+                if item.lower().endswith('.xml'):
+                    logger.debug(f"📄 Found XML file: {full_path}")
+                    file_list.append(full_path)
+    except ftplib.all_errors as e:
+        logger.error(f"❌ Error accessing {path}: {e}")
     return file_list
 
 
 def poll_veneta_ftp():
-    ftp = FTP(config.VENETA_FTP_HOST)
+    logger.info(f"🔌 Connecting to Veneta FTP: {config.VENETA_FTP_HOST}")
+    ftp = ftplib.FTP(config.VENETA_FTP_HOST)
     ftp.login(config.VENETA_FTP_USER, config.VENETA_FTP_PASS)
     ftp.cwd(config.VENETA_FTP_FOLDER)
+    logger.info(f"Accessed folder: {config.VENETA_FTP_FOLDER}")
 
     all_xml_files = recursive_list_files(ftp, '.')
-    all_xml_files = [f.lstrip('./') for f in all_xml_files]  # Clean up leading ./
+    all_xml_files = [f.lstrip('./') for f in all_xml_files]
 
-    log_debug(f"✅ Found {len(all_xml_files)} XML files on Veneta FTP")
+    logger.info(f"Found {len(all_xml_files)} XML file(s) on Veneta FTP")
 
     for filepath in all_xml_files:
-        # Download and parse file
+        logger.debug(f"Downloading file: {filepath}")
         file_buffer = BytesIO()
         ftp.retrbinary(f'RETR {filepath}', file_buffer.write)
         file_buffer.seek(0)
@@ -56,16 +53,34 @@ def poll_veneta_ftp():
             tree = ET.parse(file_buffer)
             root = tree.getroot()
             pono_element = root.find('.//PONO')
+
             if pono_element is None or not pono_element.text:
-                log_debug(f"⚠️ No PONO found in {filepath}")
+                logger.warning(f"Skipping file (no PONO found): {filepath}")
                 continue
 
             order_number = pono_element.text.strip()
-            timestamp = ftp.sendcmd(f"MDTM {filepath}")[4:].strip()  # e.g. "20250429040355"
-            ftp_time = datetime.strptime(timestamp, '%Y%m%d%H%M%S')
+
+            # try to get file timestamp
+            try:
+                timestamp_raw = ftp.sendcmd(f"MDTM {filepath}")
+                if not timestamp_raw.startswith("213 "):
+                    raise ValueError(f"Unexpected MDTM response: {timestamp_raw}")
+
+                timestamp = timestamp_raw[4:].strip()
+                if not timestamp or len(timestamp) != 14:
+                    raise ValueError(f"Invalid timestamp format: {timestamp}")
+
+                ftp_time = datetime.strptime(timestamp, '%Y%m%d%H%M%S')
+            except Exception as e:
+                logger.warning(f"⚠️ Skipping file (could not parse timestamp for {filepath}): {e}")
+                continue
+
+            logger.debug(f"Parsed order {order_number}, FTP timestamp: {ftp_time}")
             create_or_update_order(order_number, veneta_time=ftp_time, src='Veneta')
+            logger.info(f"Updated or created order {order_number} from Veneta FTP.")
 
         except Exception as e:
-            log_debug(f"❌ Failed parsing file {filepath}: {e}")
+            logger.error(f"Failed parsing file {filepath}: {e}")
 
     ftp.quit()
+    logger.info("🔌 Disconnected from Veneta FTP")
