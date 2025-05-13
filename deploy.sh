@@ -5,6 +5,9 @@ set -e
 # 🔧 CONFIGURATION
 APP_NAME="veneta-monitor"  # Change this for each app
 
+sudo mkdir -p /var/log/veneta_monitor
+sudo chown -R www-data:www-data /var/log/veneta_monitor
+
 # 🧠 DETECT ENVIRONMENT
 CURRENT_DIR=$(dirname "$(realpath "$0")")
 if [[ "$CURRENT_DIR" == *"$APP_NAME-staging"* ]]; then

@@ -19,15 +19,17 @@ if os.getenv("APP_ENV", "dev") == "prod":
     LOCAL_FTP_FOLDER = '/home/veneta/ftp/files'
     POLL_INTERVAL_SECONDS = 60
     LOG_DIR = "/var/log/veneta_monitor"
+    WEBAPP_LOG_FILE = os.path.join(LOG_DIR, "webapp.log")
+    TASKS_LOG_FILE = os.path.join(LOG_DIR, "tasks.log")
 elif os.getenv("APP_ENV", "dev") == "staging":
     LOCAL_FTP_FOLDER = '/home/veneta/ftp/files'
     POLL_INTERVAL_SECONDS = 60
     LOG_DIR = "/var/log/veneta_monitor"
+    WEBAPP_LOG_FILE = os.path.join(LOG_DIR, "webapp-staging.log")
+    TASKS_LOG_FILE = os.path.join(LOG_DIR, "tasks-staging.log")
 else:
     LOCAL_FTP_FOLDER = os.path.expandvars(r'%LOCALAPPDATA%\veneta_monitor\ftp_test')
     POLL_INTERVAL_SECONDS = 5
     LOG_DIR = os.path.expandvars(r'%LOCALAPPDATA%\veneta_monitor\logs')
-
-# These can now be used wherever needed
-WEBAPP_LOG_FILE = os.path.join(LOG_DIR, "webapp.log")
-TASKS_LOG_FILE = os.path.join(LOG_DIR, "tasks.log")
+    WEBAPP_LOG_FILE = os.path.join(LOG_DIR, "webapp.log")
+    TASKS_LOG_FILE = os.path.join(LOG_DIR, "tasks.log")
