@@ -1,4 +1,3 @@
-from services.helper import logger
 import requests
 from datetime import datetime, timedelta
 from models import db, OrderStatus
@@ -11,7 +10,7 @@ def get_cutoff_days_ago(days=7):
     return cutoff.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
-def debug_open_orders():
+def debug_open_orders(logger):
     from sqlalchemy import or_
 
     open_orders = OrderStatus.query.filter(
@@ -35,7 +34,9 @@ def debug_open_orders():
             )
 
 
-def parse_buz_date(date_str):
+def parse_buz_date(date_str, logger):
+    if not date_str:
+        return None
     try:
         return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
     except ValueError:
@@ -46,7 +47,7 @@ def parse_buz_date(date_str):
             return None
 
 
-def poll_buz_api():
+def poll_buz_api(logger):
     """Poll Buz API for Veneta orders and update matching OrderStatus records."""
     cutoff = get_cutoff_days_ago(360)
 
@@ -118,7 +119,7 @@ def poll_buz_api():
 
             if matched_sched:
                 raw_sched_date = matched_sched.get("DateScheduled")
-                parsed_sched = parse_buz_date(raw_sched_date)
+                parsed_sched = parse_buz_date(raw_sched_date, logger)
                 if parsed_sched:
                     open_order.date_scheduled = parsed_sched
                     logger.debug(f"🗓️ Set scheduled date: {parsed_sched}")
@@ -136,7 +137,7 @@ def poll_buz_api():
             open_order.workflow_statuses = combined_statuses
 
             raw_date = matched_lines[0].get('DateDoc')
-            parsed_date = parse_buz_date(raw_date)
+            parsed_date = parse_buz_date(raw_date, logger)
             if parsed_date:
                 open_order.buz_processed_time = parsed_date
                 logger.debug(f"📅 Set processed time: {parsed_date}")

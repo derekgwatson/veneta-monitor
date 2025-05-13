@@ -2,9 +2,13 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request
 from models import db, OrderStatus
 import config
-from services.helper import logger
+from services.helper import get_logger
 import sys
 import atexit
+import os
+
+# Create dedicated logger for the web app
+logger = get_logger("web-app", config.WEBAPP_LOG_FILE)
 
 # Flask app setup
 app = Flask(__name__)
@@ -24,8 +28,8 @@ with app.app_context():
 # Handle 500 errors with logging
 @app.errorhandler(500)
 def internal_error(error):
-    logger.error(f"🔥 Internal server error: {error}", exc_info=True)
-    return "Something went wrong", 500
+    logger.error(f"🔥 Server error, not good: {error}", exc_info=True)
+    return "Something went terribly wrong :/ Someone should really do something about that", 500
 
 
 # Home dashboard route

@@ -2,45 +2,48 @@ from io import BytesIO
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import config
-from services.helper import create_or_update_order, logger
+from services.helper import create_or_update_order
 import ftplib
+import os
 
 
-def recursive_list_files(ftp, path="."):
+def recursive_list_files(ftp, path, logger):
     file_list = []
     try:
         ftp.cwd(path)
+        logger.debug(f"📁 Entering directory: {ftp.pwd()}")
+
         items = ftp.nlst()
         for item in items:
             if item in ('.', '..'):
                 continue
 
-            full_path = f"{path}/{item}".replace("//", "/")
+            full_path = f"{path.rstrip('/')}/{item}"
 
             try:
-                ftp.cwd(full_path)  # Try to enter subdirectory
-                logger.debug(f"📁 Entering directory: {full_path}")
-                file_list.extend(recursive_list_files(ftp, full_path))
-                ftp.cwd("..")  # Go back up after recursion
+                ftp.cwd(full_path)
+                # It's a directory
+                file_list.extend(recursive_list_files(ftp, full_path, logger))
+                ftp.cwd(path)  # Go back to parent dir
             except ftplib.error_perm:
+                # Not a directory; check if it's an XML file
                 if item.lower().endswith('.xml'):
                     logger.debug(f"📄 Found XML file: {full_path}")
                     file_list.append(full_path)
+
     except ftplib.all_errors as e:
         logger.error(f"❌ Error accessing {path}: {e}")
     return file_list
 
 
-def poll_veneta_ftp():
+def poll_veneta_ftp(logger):
     logger.info(f"🔌 Connecting to Veneta FTP: {config.VENETA_FTP_HOST}")
     ftp = ftplib.FTP(config.VENETA_FTP_HOST)
     ftp.login(config.VENETA_FTP_USER, config.VENETA_FTP_PASS)
     ftp.cwd(config.VENETA_FTP_FOLDER)
     logger.info(f"Accessed folder: {config.VENETA_FTP_FOLDER}")
 
-    all_xml_files = recursive_list_files(ftp, '.')
-    all_xml_files = [f.lstrip('./') for f in all_xml_files]
-
+    all_xml_files = recursive_list_files(ftp, ftp.pwd(), logger)
     logger.info(f"Found {len(all_xml_files)} XML file(s) on Veneta FTP")
 
     for filepath in all_xml_files:

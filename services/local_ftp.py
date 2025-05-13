@@ -2,10 +2,10 @@ import os
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import config
-from services.helper import create_or_update_order, logger
+from services.helper import create_or_update_order
 
 
-def poll_local_ftp():
+def poll_local_ftp(logger):
     all_xml_files = []
     logger.debug(f"📂 Polling local FTP folder: {config.LOCAL_FTP_FOLDER}")
 
@@ -32,7 +32,7 @@ def poll_local_ftp():
             mod_time = datetime.fromtimestamp(os.path.getmtime(filepath))
             logger.debug(f"📦 Processing order {order_number} (last modified {mod_time}) from {filepath}")
 
-            create_or_update_order(order_number, local_time=mod_time, src='Local')
+            create_or_update_order(order_number, local_time=mod_time, src='Local', logger=logger)
             logger.info(f"📝 Updated or created order {order_number} from local FTP.")
 
         except Exception as e:

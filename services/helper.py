@@ -5,8 +5,10 @@ from models import db, OrderStatus
 import config
 
 
-def create_or_update_order(order_number, veneta_time=None, local_time=None, src=None):
-    logger = logging.getLogger(name)
+def create_or_update_order(order_number, veneta_time=None, local_time=None, src=None, logger=None):
+    if logger is None:
+        logger = logging.getLogger("fallback")  # Won’t have handlers, but avoids crash
+
     order = OrderStatus.query.filter_by(order_number=order_number).first()
 
     if not order:

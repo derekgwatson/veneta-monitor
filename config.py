@@ -13,17 +13,21 @@ BUZ_API_PASS = 'Bentknob84'
 basedir = os.path.abspath(os.path.dirname(__file__))
 DATABASE_FILE = os.path.join(basedir, 'orders.db')
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")  # Can be set via environment variable
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")
 
 if os.getenv("APP_ENV", "dev") == "prod":
     LOCAL_FTP_FOLDER = '/home/veneta/ftp/files'
-    POLL_INTERVAL_SECONDS = 60  # how often to check
-    LOG_FILE = "/var/log/veneta_monitor.log"
+    POLL_INTERVAL_SECONDS = 60
+    LOG_DIR = "/var/log/veneta_monitor"
 elif os.getenv("APP_ENV", "dev") == "staging":
     LOCAL_FTP_FOLDER = '/home/veneta/ftp/files'
-    POLL_INTERVAL_SECONDS = 60  # how often to check
-    LOG_FILE = "/var/log/veneta_monitor_staging.log"
+    POLL_INTERVAL_SECONDS = 60
+    LOG_DIR = "/var/log/veneta_monitor"
 else:
-    LOCAL_FTP_FOLDER = 'C:\\Users\\Derek\\Downloads\\ftp_test'
+    LOCAL_FTP_FOLDER = os.path.expandvars(r'%LOCALAPPDATA%\veneta_monitor\ftp_test')
     POLL_INTERVAL_SECONDS = 5
-    LOG_FILE = os.path.join(os.getenv("TEMP", "C:\\temp"), "veneta_monitor.log")
+    LOG_DIR = os.path.expandvars(r'%LOCALAPPDATA%\veneta_monitor\logs')
+
+# These can now be used wherever needed
+WEBAPP_LOG_FILE = os.path.join(LOG_DIR, "webapp.log")
+TASKS_LOG_FILE = os.path.join(LOG_DIR, "tasks.log")
