@@ -8,7 +8,6 @@ import config
 from services.helper import get_logger
 import sys
 import io
-import os
 
 
 sys.stdout.reconfigure(encoding='utf-8')
