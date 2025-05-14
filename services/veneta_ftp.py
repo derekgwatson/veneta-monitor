@@ -37,14 +37,14 @@ def recursive_list_files(ftp, path, logger):
 
 
 def poll_veneta_ftp(logger):
-    logger.info(f"🔌 Connecting to Veneta FTP: {config.VENETA_FTP_HOST}")
+    logger.debug(f"🔌 Connecting to Veneta FTP: {config.VENETA_FTP_HOST}")
     ftp = ftplib.FTP(config.VENETA_FTP_HOST)
     ftp.login(config.VENETA_FTP_USER, config.VENETA_FTP_PASS)
     ftp.cwd(config.VENETA_FTP_FOLDER)
-    logger.info(f"Accessed folder: {config.VENETA_FTP_FOLDER}")
+    logger.debug(f"Accessed folder: {config.VENETA_FTP_FOLDER}")
 
     all_xml_files = recursive_list_files(ftp, ftp.pwd(), logger)
-    logger.info(f"Found {len(all_xml_files)} XML file(s) on Veneta FTP")
+    logger.debug(f"Found {len(all_xml_files)} XML file(s) on Veneta FTP")
 
     for filepath in all_xml_files:
         logger.debug(f"Downloading file: {filepath}")
@@ -78,9 +78,8 @@ def poll_veneta_ftp(logger):
                 logger.warning(f"⚠️ Skipping file (could not parse timestamp for {filepath}): {e}")
                 continue
 
-            logger.debug(f"Parsed order {order_number}, FTP timestamp: {ftp_time}")
-            create_or_update_order(order_number, veneta_time=ftp_time, src='Veneta')
-            logger.info(f"Updated or created order {order_number} from Veneta FTP.")
+            if create_or_update_order(order_number, veneta_time=ftp_time, src='Veneta'):
+                logger.info(f"Processed order {order_number} from Veneta FTP, timestamp: {ftp_time}")
 
         except Exception as e:
             logger.error(f"Failed parsing file {filepath}: {e}")

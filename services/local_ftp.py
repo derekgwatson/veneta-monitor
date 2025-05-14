@@ -18,6 +18,8 @@ def poll_local_ftp(logger):
 
     logger.info(f"✅ Found {len(all_xml_files)} XML file(s) in Local FTP folder")
 
+    any_changes = False
+
     for filepath in all_xml_files:
         try:
             tree = ET.parse(filepath)
@@ -32,8 +34,12 @@ def poll_local_ftp(logger):
             mod_time = datetime.fromtimestamp(os.path.getmtime(filepath))
             logger.debug(f"📦 Processing order {order_number} (last modified {mod_time}) from {filepath}")
 
-            create_or_update_order(order_number, local_time=mod_time, src='Local', logger=logger)
-            logger.info(f"📝 Updated or created order {order_number} from local FTP.")
+            if create_or_update_order(order_number, local_time=mod_time, src='Local', logger=logger):
+                logger.info(f"📝 Updated or created order {order_number} from local FTP.")
+                any_changes = True
 
         except Exception as e:
             logger.error(f"❌ Failed parsing file {filepath}: {e}")
+
+    if not any_changes:
+        logger.debug("✔️ No changes made from Local FTP.")

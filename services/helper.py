@@ -7,24 +7,36 @@ import config
 
 def create_or_update_order(order_number, veneta_time=None, local_time=None, src=None, logger=None):
     if logger is None:
-        logger = logging.getLogger("fallback")  # Won’t have handlers, but avoids crash
+        logger = logging.getLogger("fallback")
 
     order = OrderStatus.query.filter_by(order_number=order_number).first()
+    is_new = order is None
+    updated = False
 
-    if not order:
+    if is_new:
         order = OrderStatus(order_number=order_number, src=src)
-        logger.info(f"✅ Creating new order: {order_number}")
+        updated = True  # New order is always an update
 
-    if veneta_time and not order.veneta_ftp_time:
+    if veneta_time and order.veneta_ftp_time != veneta_time:
         order.veneta_ftp_time = veneta_time
-        logger.info(f"🕒 Set veneta_ftp_time for {order_number}")
+        updated = True
 
-    if local_time and not order.local_ftp_time:
+    if local_time and order.local_ftp_time != local_time:
         order.local_ftp_time = local_time
-        logger.info(f"🕒 Set local_ftp_time for {order_number}")
+        updated = True
 
-    db.session.add(order)
-    db.session.commit()
+    if is_new or updated:
+        db.session.add(order)
+        db.session.commit()
+
+        if is_new:
+            logger.info(f"✅ Creating new order: {order_number}")
+        if veneta_time and (is_new or order.veneta_ftp_time == veneta_time):
+            logger.info(f"🕒 Set veneta_ftp_time for {order_number}")
+        if local_time and (is_new or order.local_ftp_time == local_time):
+            logger.info(f"🕒 Set local_ftp_time for {order_number}")
+
+    return is_new or updated
 
 
 def get_logger(name: str, log_file: str, level=config.LOG_LEVEL):

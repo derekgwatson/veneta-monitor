@@ -107,23 +107,23 @@ def poll_buz_api(logger):
             order_no = matched_lines[0].get('OrderNo', '').strip()
             logger.debug(f"🔍 Matching DateScheduled for OrderNo: {order_no}")
 
-            for line in scheduled_lines:
-                ref_no = (line.get("RefNo") or "").strip()
-                if order_no == ref_no:
-                    logger.debug(f"✅ Schedule match found: RefNo={ref_no}, DateScheduled={line.get('DateScheduled')}")
-
             matched_sched = next(
-                (line for line in scheduled_lines if order_no == line.get("RefNo") or ""),
+                (line for line in scheduled_lines if order_no == (line.get("RefNo") or "").strip()),
                 None
             )
 
+            updated = False
+
+            # Update scheduled date
             if matched_sched:
                 raw_sched_date = matched_sched.get("DateScheduled")
                 parsed_sched = parse_buz_date(raw_sched_date, logger)
-                if parsed_sched:
+                if parsed_sched and open_order.date_scheduled != parsed_sched:
                     open_order.date_scheduled = parsed_sched
                     logger.debug(f"🗓️ Set scheduled date: {parsed_sched}")
+                    updated = True
 
+            # Update workflow statuses
             workflow_statuses = []
             for line in matched_lines:
                 status = line.get('Workflow_Job_Tracking_Status') or line.get('Order_Status')
@@ -133,17 +133,25 @@ def poll_buz_api(logger):
             workflow_statuses = sorted(set(workflow_statuses))
             combined_statuses = ', '.join(workflow_statuses)
 
-            open_order.buz_order_number = order_no
-            open_order.workflow_statuses = combined_statuses
+            if open_order.workflow_statuses != combined_statuses:
+                open_order.workflow_statuses = combined_statuses
+                updated = True
 
+            if open_order.buz_order_number != order_no:
+                open_order.buz_order_number = order_no
+                updated = True
+
+            # Update processed time
             raw_date = matched_lines[0].get('DateDoc')
             parsed_date = parse_buz_date(raw_date, logger)
-            if parsed_date:
+            if parsed_date and open_order.buz_processed_time != parsed_date:
                 open_order.buz_processed_time = parsed_date
                 logger.debug(f"📅 Set processed time: {parsed_date}")
+                updated = True
 
-            db.session.commit()
-            logger.info(f"✅ Updated order {open_order.order_number} (statuses: {combined_statuses})")
+            if updated:
+                db.session.commit()
+                logger.info(f"✅ Updated order {open_order.order_number} (statuses: {combined_statuses})")
 
         else:
             logger.warning(f"❌ No matching sales lines for open order: {open_order.order_number}")
